@@ -1,0 +1,353 @@
+/* Employee Dashboard Styles */
+.employee-layout {
+  min-height: 100vh;
+  background: #f5f7fa;
+}
+
+.employee-layout header {
+  background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+  padding: 16px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+}
+
+.employee-layout .header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.employee-layout .logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: white;
+  padding: 4px;
+}
+
+.employee-layout .header-left h1 {
+  font-size: 18px;
+}
+
+.employee-layout .header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.employee-layout .notification-bell-wrapper {
+  position: relative;
+}
+
+.employee-layout .notification-bell {
+  font-size: 20px;
+}
+
+.employee-layout .notification-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.employee-layout .profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: white;
+}
+
+.employee-layout .profile-btn .avatar {
+  width: 36px;
+  height: 36px;
+  background: white;
+  color: #1a365d;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.employee-layout .header-right button {
+  padding: 8px 16px;
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.employee-layout .employee-content {
+  padding: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.employee-layout .welcome-section {
+  margin-bottom: 32px;
+}
+
+.employee-layout .welcome-section h2 {
+  font-size: 28px;
+  color: #1a365d;
+  margin-bottom: 8px;
+}
+
+.employee-layout .welcome-section p {
+  color: #6b7280;
+}
+
+.employee-layout .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.employee-layout .stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.employee-layout .stat-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.employee-layout .stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1a365d;
+}
+
+.employee-layout .stat-label {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.employee-layout .employee-actions {
+  margin-bottom: 32px;
+}
+
+.employee-layout .action-btn {
+  padding: 14px 28px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+
+.employee-layout .action-btn.primary {
+  background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+  color: white;
+}
+
+.employee-layout .info-sections {
+  display: grid;
+  gap: 24px;
+}
+
+.employee-layout .section {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.employee-layout .section h3 {
+  color: #1a365d;
+  margin-bottom: 16px;
+  font-size: 18px;
+}
+
+.employee-layout table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.employee-layout th, 
+.employee-layout td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.employee-layout th {
+  background: #f9fafb;
+  font-size: 12px;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+.employee-layout .status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.employee-layout .status-badge.pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.employee-layout .status-badge.approved {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.employee-layout .status-badge.rejected {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.employee-layout .no-data {
+  color: #6b7280;
+  text-align: center;
+  padding: 24px;
+}
+
+/* Modal */
+.employee-layout .modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.employee-layout .modal-content {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.employee-layout .modal-content h3 {
+  color: #1a365d;
+  margin-bottom: 24px;
+  font-size: 20px;
+}
+
+.employee-layout .leave-balance-info {
+  background: #dbeafe;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  color: #1e40af;
+  font-weight: 500;
+}
+
+.employee-layout .days-preview {
+  background: #fef3c7;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  color: #92400e;
+  font-weight: 500;
+}
+
+/* Achievements */
+.employee-layout .achievements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.employee-layout .achievement-card {
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border-left: 4px solid #fbbf24;
+}
+
+.employee-layout .achievement-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.employee-layout .achievement-header h4 {
+  color: #1a365d;
+  font-size: 15px;
+}
+
+.employee-layout .achievement-card p {
+  color: #6b7280;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.employee-layout .achievement-date {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.employee-layout .form-group {
+  margin-bottom: 20px;
+}
+
+.employee-layout .form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #374151;
+  font-weight: 500;
+}
+
+.employee-layout .form-group input,
+.employee-layout .form-group select,
+.employee-layout .form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.employee-layout .form-group textarea {
+  min-height: 100px;
+}
+
+.employee-layout .modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.employee-layout .btn-secondary {
+  padding: 12px 24px;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.employee-layout .btn-primary {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}

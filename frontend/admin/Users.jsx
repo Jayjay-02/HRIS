@@ -309,8 +309,7 @@ const Users = () => {
                       value={formData.role}
                       onChange={e => setFormData({...formData, role: e.target.value})}
                     >
-                      <option value="admin">Admin</option>
-                      <option value="hr">HR</option>
+                      <option value="admin">ADMIN</option>
                       <option value="head">Chief</option>
                       <option value="employee">Employee</option>
                     </select>

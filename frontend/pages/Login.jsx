@@ -13,6 +13,21 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // Check if already logged in and redirect to appropriate dashboard
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const token = localStorage.getItem('token');
+    if (user && token) {
+      if (user.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else if (user.role === 'head' || user.role === 'chief') {
+        navigate('/head/dashboard');
+      } else {
+        navigate('/employee/dashboard');
+      }
+    }
+  }, [navigate]);
+
   // Initialize admin user on first load
   useEffect(() => {
     const users = JSON.parse(localStorage.getItem('users') || '[]');

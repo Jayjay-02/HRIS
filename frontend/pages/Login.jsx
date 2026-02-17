@@ -11,6 +11,7 @@ const Login = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Initialize admin user on first load
   useEffect(() => {
@@ -24,9 +25,24 @@ const Login = () => {
         password: 'admin123',
         role: 'admin'
       };
-      localStorage.setItem('users', JSON.stringify([adminUser]));
+      // Create default chief user
+      const chiefUser = {
+        id: 2,
+        name: 'Jay Satore',
+        email: 'satorejay255@gmail.com',
+        password: 'chief123',
+        role: 'chief',
+        department: 'IT',
+        position: 'Head'
+      };
+      localStorage.setItem('users', JSON.stringify([adminUser, chiefUser]));
     }
   }, []);
+
+  const handleClearData = () => {
+    localStorage.clear();
+    window.location.reload();
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -71,7 +87,7 @@ const Login = () => {
           navigate('/admin/dashboard');
         } else if (user.role === 'hr') {
           navigate('/hr/dashboard');
-        } else if (user.role === 'head') {
+        } else if (user.role === 'head' || user.role === 'chief') {
           navigate('/head/dashboard');
         } else {
           navigate('/employee/dashboard');
@@ -120,16 +136,35 @@ const Login = () => {
 
             <div className="form-group">
               <label htmlFor="password">Password</label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Enter your password"
-                className="form-input"
-                autoComplete="current-password"
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Enter your password"
+                  className="form-input"
+                  autoComplete="current-password"
+                  style={{ paddingRight: '40px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '16px'
+                  }}
+                >
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
             </div>
 
             <div className="form-options">
@@ -152,6 +187,22 @@ const Login = () => {
               ) : (
                 'Sign In'
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleClearData}
+              style={{
+                marginTop: '10px',
+                background: 'none',
+                border: 'none',
+                color: '#666',
+                cursor: 'pointer',
+                fontSize: '12px',
+                textDecoration: 'underline'
+              }}
+            >
+              Clear localStorage & Reset
             </button>
           </form>
 

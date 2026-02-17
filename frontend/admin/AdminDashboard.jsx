@@ -31,8 +31,8 @@ const AdminDashboard = () => {
     setAllLeaves(leavesData);
     setRecentLeaves(leavesData.slice(0, 5));
     
-    // Load payrolls
-    const payrollData = JSON.parse(localStorage.getItem('payroll') || '[]');
+    // Load promotions
+    const promotionData = JSON.parse(localStorage.getItem('promotionHistory') || '[]');
     
     // Load achievements
     const achievementsData = JSON.parse(localStorage.getItem('achievements') || '[]');
@@ -46,7 +46,7 @@ const AdminDashboard = () => {
       totalUsers: usersData.length,
       totalEmployees: employeeUsers.length,
       pendingLeaves: leavesData.filter(l => l.status === 'pending').length,
-      totalPayroll: payrollData.length
+      totalPayroll: JSON.parse(localStorage.getItem('promotionHistory') || '[]').length
     });
   };
 
@@ -84,10 +84,10 @@ const AdminDashboard = () => {
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon red">💰</div>
+            <div className="stat-icon red">🏅</div>
             <div className="stat-info">
               <h3>{stats.totalPayroll}</h3>
-              <p>Payroll Records</p>
+              <p>Promotions</p>
             </div>
           </div>
         </div>

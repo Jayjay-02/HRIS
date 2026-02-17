@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../components/Modal';
+import Calendar from '../components/Calendar';
 import './EmployeeDashboard.css';
 
 const EmployeeDashboard = () => {
@@ -21,7 +22,9 @@ const EmployeeDashboard = () => {
     email: '',
     phone: '',
     address: '',
-    profilePicture: ''
+    profilePicture: '',
+    position: '',
+    department: ''
   });
   const [leaveForm, setLeaveForm] = useState({
     leaveType: 'vacation',
@@ -32,16 +35,21 @@ const EmployeeDashboard = () => {
   const [achievementForm, setAchievementForm] = useState({
     title: '',
     description: '',
-    date: ''
+    date: '',
+    picture: ''
   });
   const [documents, setDocuments] = useState([]);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [documentForm, setDocumentForm] = useState({
     documentType: 'birth_certificate',
-    description: ''
+    description: '',
+    customDocumentType: ''
   });
   const [showLeaveFormModal, setShowLeaveFormModal] = useState(false);
   const [selectedLeaveForPrint, setSelectedLeaveForPrint] = useState(null);
+  const [allLeaves, setAllLeaves] = useState([]); // For calendar - shows all employees on leave
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const [promotionHistory, setPromotionHistory] = useState([]);
 
   // Leave form template state
   const [leaveFormTemplate, setLeaveFormTemplate] = useState({
@@ -73,7 +81,9 @@ const EmployeeDashboard = () => {
       email: userData.email || '',
       phone: userData.phone || '',
       address: userData.address || '',
-      profilePicture: userData.profilePicture || ''
+      profilePicture: userData.profilePicture || '',
+      position: userData.position || '',
+      department: userData.department || ''
     });
     
     const allLeaves = JSON.parse(localStorage.getItem('leaves') || '[]');
@@ -87,7 +97,17 @@ const EmployeeDashboard = () => {
       const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
       return total + days;
     }, 0);
-    setLeaveBalance(15 - usedDays);
+    
+    // Calculate months since registration (for leave accrual: 1 day + 2 hours per month)
+    const userCreatedAt = userData.createdAt ? new Date(userData.createdAt) : new Date();
+    const now = new Date();
+    const monthsWorked = Math.max(0, (now.getFullYear() - userCreatedAt.getFullYear()) * 12 + (now.getMonth() - userCreatedAt.getMonth()));
+    const accruedDays = monthsWorked; // 1 day per month
+    const accruedHours = monthsWorked * 2; // 2 hours per month
+    
+    // Total leave: initial 15 + accrued days + accrued hours converted to days (8 hours = 1 day)
+    const totalLeave = 15 + accruedDays + Math.floor(accruedHours / 8);
+    setLeaveBalance(totalLeave - usedDays);
     
     const allAchievements = JSON.parse(localStorage.getItem('achievements') || '[]');
     // Show only approved achievements for employees
@@ -104,6 +124,15 @@ const EmployeeDashboard = () => {
     const allDocuments = JSON.parse(localStorage.getItem('documents') || '[]');
     setDocuments(allDocuments.filter(d => d.employeeId === userData.id));
     
+    // Load all leaves for calendar (to show who's on leave)
+    const allLeavesData = JSON.parse(localStorage.getItem('leaves') || '[]');
+    setAllLeaves(allLeavesData);
+    
+    // Load promotion history
+    const allPromotions = JSON.parse(localStorage.getItem('promotionHistory') || '[]');
+    const userPromotions = allPromotions.filter(p => p.employeeId === userData.id);
+    setPromotionHistory(userPromotions);
+    
     // Initialize leave form template with user data
     setLeaveFormTemplate({
       position: userData.position || '',
@@ -118,6 +147,21 @@ const EmployeeDashboard = () => {
       filedDate: new Date().toISOString().split('T')[0]
     });
   };
+
+  // Load notifications with interval
+  useEffect(() => {
+    const loadNotifications = () => {
+      const allNotifs = JSON.parse(localStorage.getItem('notifications') || '[]');
+      const userNotifications = allNotifs.filter(n => n.targetUserId === user.id);
+      setNotifications(userNotifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+    };
+    
+    if (user.id) {
+      loadNotifications();
+      const interval = setInterval(loadNotifications, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [user.id]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -169,6 +213,7 @@ const EmployeeDashboard = () => {
       id: Date.now(),
       employeeId: user.id,
       employeeName: user.name,
+      employeeDepartment: user.department,
       ...leaveForm,
       daysRequested,
       status: 'pending',
@@ -180,14 +225,22 @@ const EmployeeDashboard = () => {
     localStorage.setItem('leaves', JSON.stringify(updatedLeaves));
     setLeaves([...leaves, newLeave]);
     
+    // Find the department chief for this employee's department
+    const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
+    const departmentChief = allUsers.find(u => u.department === user.department && u.role === 'head');
+    
+    // Create notification for the department chief
     const notification = {
       id: Date.now(),
       type: 'leave',
       targetUserId: user.id,
+      departmentChiefId: departmentChief?.id || null,
+      department: user.department,
       title: 'New Leave Request',
       message: `${user.name} has filed a ${leaveForm.leaveType} leave for ${daysRequested} days`,
       date: new Date().toISOString(),
-      forRoles: ['admin', 'hr'],
+      forRoles: departmentChief ? [] : ['admin', 'hr'], // If there's a chief, send to them; otherwise send to admin/hr
+      departmentChiefNotification: departmentChief ? true : false,
       isRead: false
     };
     
@@ -197,7 +250,9 @@ const EmployeeDashboard = () => {
     setShowLeaveModal(false);
     setModalContent({
       title: 'Leave Request Submitted',
-      message: 'Your leave request has been submitted successfully! Notification sent to Admin and HR.',
+      message: departmentChief 
+        ? `Your leave request has been submitted successfully! Notification sent to your department chief (${departmentChief.name}).`
+        : 'Your leave request has been submitted successfully! Notification sent to Admin and HR.',
       type: 'success'
     });
     setShowModal(true);
@@ -242,7 +297,7 @@ const EmployeeDashboard = () => {
       type: 'success'
     });
     setShowModal(true);
-    setAchievementForm({ title: '', description: '', date: '' });
+    setAchievementForm({ title: '', description: '', date: '', picture: '' });
   };
 
   const handleDocumentUpload = (e) => {
@@ -278,7 +333,7 @@ const EmployeeDashboard = () => {
         id: Date.now(),
         employeeId: user.id,
         employeeName: user.name,
-        documentType: documentForm.documentType,
+        documentType: documentForm.documentType === 'other' ? documentForm.customDocumentType : documentForm.documentType,
         description: documentForm.description,
         fileName: file.name,
         fileData: reader.result, // Base64 encoded PDF
@@ -298,7 +353,7 @@ const EmployeeDashboard = () => {
         type: 'success'
       });
       setShowModal(true);
-      setDocumentForm({ documentType: 'birth_certificate', description: '' });
+      setDocumentForm({ documentType: 'birth_certificate', description: '', customDocumentType: '' });
       fileInput.value = '';
     };
     reader.readAsDataURL(file);
@@ -344,14 +399,21 @@ const EmployeeDashboard = () => {
     localStorage.setItem('leaves', JSON.stringify(updatedLeaves));
     setLeaves([...leaves, newLeave]);
     
+    // Find the department chief for this employee's department
+    const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
+    const employeeDept = leaveFormTemplate.department || user.department;
+    const departmentChief = allUsers.find(u => u.department === employeeDept && u.role === 'head');
+    
     const notification = {
       id: Date.now(),
       type: 'leave',
       targetUserId: user.id,
+      departmentChiefId: departmentChief?.id || null,
       title: 'New Leave Request',
       message: `${user.name} has filed a ${leaveFormTemplate.leaveType} leave for ${daysRequested} days`,
       date: new Date().toISOString(),
-      forRoles: ['admin', 'hr'],
+      forRoles: departmentChief ? [] : ['admin', 'hr'],
+      departmentChiefNotification: departmentChief ? true : false,
       isRead: false
     };
     
@@ -361,7 +423,9 @@ const EmployeeDashboard = () => {
     setShowLeaveFormModal(false);
     setModalContent({
       title: 'Leave Request Submitted',
-      message: 'Your leave request has been submitted successfully! Notification sent to Admin and HR.',
+      message: departmentChief 
+        ? `Your leave request has been submitted successfully! Notification sent to your department chief (${departmentChief.name}).`
+        : 'Your leave request has been submitted successfully! Notification sent to Admin and HR.',
       type: 'success'
     });
     setShowModal(true);
@@ -553,6 +617,17 @@ const EmployeeDashboard = () => {
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
+  const formatTimeAgo = (dateStr) => {
+    if (!dateStr) return 'Just now';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = Math.floor((now - date) / 1000);
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+  };
+
   return (
     <div className="employee-layout">
       <header>
@@ -561,9 +636,86 @@ const EmployeeDashboard = () => {
           <h1>LTO IHREMS - Employee Portal</h1>
         </div>
         <div className="header-right">
-          <div className="notification-bell-wrapper">
-            <span className="notification-bell">🔔</span>
-            {unreadCount > 0 && <span className="notification-count">{unreadCount}</span>}
+          <div className="notification-bell-wrapper" style={{ position: 'relative' }}>
+            <button 
+              onClick={() => setShowNotifDropdown(!showNotifDropdown)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative', padding: '8px' }}
+            >
+              <span className="notification-bell">🔔</span>
+              {unreadCount > 0 && <span className="notification-count">{unreadCount}</span>}
+            </button>
+            {showNotifDropdown && (
+              <div style={{ 
+                position: 'absolute', 
+                top: '100%', 
+                right: 0, 
+                width: '320px', 
+                background: 'white', 
+                borderRadius: '12px', 
+                boxShadow: '0 10px 40px rgba(0,0,0,0.15)', 
+                zIndex: 1000,
+                maxHeight: '400px',
+                overflow: 'auto'
+              }}>
+                <div style={{ padding: '16px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: '600', color: '#1a365d' }}>Notifications</span>
+                  {notifications.length > 0 && (
+                    <button 
+                      onClick={() => {
+                        const updated = notifications.map(n => ({ ...n, isRead: true }));
+                        setNotifications(updated);
+                        const allNotifs = JSON.parse(localStorage.getItem('notifications') || '[]');
+                        const updatedAll = allNotifs.map(n => n.targetUserId === user.id ? { ...n, isRead: true } : n);
+                        localStorage.setItem('notifications', JSON.stringify(updatedAll));
+                      }}
+                      style={{ background: 'none', border: 'none', color: '#059669', cursor: 'pointer', fontSize: '13px' }}
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                </div>
+                <div style={{ maxHeight: '300px', overflow: 'auto' }}>
+                  {notifications.length === 0 ? (
+                    <div style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>
+                      No notifications
+                    </div>
+                  ) : (
+                    notifications.slice(0, 10).map((notif, index) => (
+                      <div 
+                        key={index} 
+                        style={{ 
+                          padding: '12px 16px', 
+                          borderBottom: '1px solid #f3f4f6',
+                          background: notif.isRead ? 'white' : '#f0f9ff',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => {
+                          if (!notif.isRead) {
+                            const updated = notifications.map((n, i) => i === index ? { ...n, isRead: true } : n);
+                            setNotifications(updated);
+                            const allNotifs = JSON.parse(localStorage.getItem('notifications') || '[]');
+                            const updatedAll = allNotifs.map(n => n.id === notif.id ? { ...n, isRead: true } : n);
+                            localStorage.setItem('notifications', JSON.stringify(updatedAll));
+                          }
+                        }}
+                      >
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                          <div style={{ fontSize: '18px' }}>
+                            {notif.type === 'leave' ? '📅' : notif.type === 'achievement' ? '🏆' : notif.type === 'promotion' ? '⬆️' : '📢'}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ margin: 0, fontSize: '13px', color: '#374151' }}>{notif.message}</p>
+                            <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                              {notif.createdAt ? new Date(notif.createdAt).toLocaleString() : 'Just now'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           <button className="profile-btn" onClick={() => setShowProfileModal(true)}>
             <span>{user.name}</span>
@@ -582,7 +734,7 @@ const EmployeeDashboard = () => {
       <div className="employee-content">
         <div className="welcome-section">
           <h2>Welcome, {user.name}!</h2>
-          <p>Manage your leaves, view payslips, and track your achievements.</p>
+          <p>Manage your leaves, view promotion details, track achievements, and more.</p>
         </div>
 
         <div className="stats-grid">
@@ -590,16 +742,17 @@ const EmployeeDashboard = () => {
             <div className="stat-icon">📅</div>
             <div className="stat-value">{leaveBalance}</div>
             <div className="stat-label">Available Leave Days</div>
+            <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>+ 1 day & 2 hrs/month</div>
           </div>
           <div className="stat-card">
             <div className="stat-icon">⏳</div>
             <div className="stat-value">{leaves.filter(l => l.status === 'pending').length}</div>
             <div className="stat-label">Pending Requests</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-icon">💰</div>
-            <div className="stat-value">{payrolls.length}</div>
-            <div className="stat-label">Payslips</div>
+          <div className="stat-card" onClick={() => document.getElementById('promotions-section')?.scrollIntoView({ behavior: 'smooth' })} style={{ cursor: 'pointer' }}>
+            <div className="stat-icon">⬆️</div>
+            <div className="stat-value">{promotionHistory.length}</div>
+            <div className="stat-label">Promotion Details</div>
           </div>
           <div className="stat-card">
             <div className="stat-icon">🏆</div>
@@ -618,6 +771,15 @@ const EmployeeDashboard = () => {
           <button className="action-btn secondary" onClick={() => setShowDocumentModal(true)}>
             📄 Upload Document
           </button>
+        </div>
+
+        {/* Calendar showing who's on leave */}
+        <div className="section" style={{ marginTop: '24px' }}>
+          <h3>📅 Company Leave Calendar</h3>
+          <p style={{ color: '#6b7280', marginBottom: '16px', fontSize: '14px' }}>
+            View which employees are on leave. Click on a date to see who's on leave.
+          </p>
+          <Calendar leaves={allLeaves} />
         </div>
 
         <div className="info-sections">
@@ -723,31 +885,34 @@ const EmployeeDashboard = () => {
             )}
           </div>
 
-          <div className="section">
-            <h3>My Payslips</h3>
-            {payrolls.length > 0 ? (
+          {/* Promotion History Section */}
+          <div className="section" id="promotions-section">
+            <h3>⬆️ My Promotion History</h3>
+            {promotionHistory.length > 0 ? (
               <table>
                 <thead>
                   <tr>
-                    <th>Month</th>
-                    <th>Base Salary</th>
-                    <th>Net Salary</th>
+                    <th>Previous Position</th>
+                    <th>New Position</th>
+                    <th>Promoted By</th>
+                    <th>Date</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {payrolls.map(payroll => (
-                    <tr key={payroll.id}>
-                      <td>{payroll.month}</td>
-                      <td>{formatCurrency(payroll.baseSalary)}</td>
+                  {promotionHistory.map(promo => (
+                    <tr key={promo.id}>
+                      <td>{promo.oldPosition}</td>
                       <td style={{ fontWeight: '600', color: '#059669' }}>
-                        {formatCurrency(payroll.netSalary)}
+                        {promo.newPosition}
                       </td>
+                      <td>{promo.promotedBy}</td>
+                      <td>{new Date(promo.promotedAt).toLocaleDateString()}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             ) : (
-              <p className="no-data">No payslips available yet.</p>
+              <p className="no-data">No promotions yet. Check back later!</p>
             )}
           </div>
         </div>
@@ -856,15 +1021,10 @@ const EmployeeDashboard = () => {
                     required
                   />
                 </div>
-                <div className="form-group">
-                  <label>Monthly Salary (₱)</label>
-                  <input
-                    type="number"
-                    value={leaveFormTemplate.salary}
-                    onChange={e => setLeaveFormTemplate({...leaveFormTemplate, salary: e.target.value})}
-                    placeholder="Enter monthly salary"
-                    required
-                  />
+                <div style={{ marginTop: '12px', padding: '12px', background: '#dcfce7', borderRadius: '8px' }}>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#166534' }}>
+                    📌 <strong>Leave Accrual:</strong> You earn 1 day + 2 hours of leave every month
+                  </p>
                 </div>
               </div>
 
@@ -1027,6 +1187,42 @@ const EmployeeDashboard = () => {
                   required
                 />
               </div>
+              <div className="form-group">
+                <label>Upload Picture (Optional)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={e => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setAchievementForm({...achievementForm, picture: reader.result});
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    style={{ display: 'none' }}
+                    id="achievement-pic"
+                  />
+                  <label htmlFor="achievement-pic" style={{ padding: '8px 16px', background: '#f3f4f6', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' }}>
+                    📷 Upload Photo
+                  </label>
+                  {achievementForm.picture && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <img src={achievementForm.picture} alt="Achievement" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }} />
+                      <button 
+                        type="button" 
+                        onClick={() => setAchievementForm({...achievementForm, picture: ''})}
+                        style={{ padding: '4px 8px', background: '#fee2e2', border: 'none', borderRadius: '4px', cursor: 'pointer', color: '#dc2626', fontSize: '12px' }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
               <div className="modal-actions">
                 <button type="button" className="btn-secondary" onClick={() => setShowAchievementModal(false)}>
                   Cancel
@@ -1062,6 +1258,18 @@ const EmployeeDashboard = () => {
                   <option value="other">Other Document</option>
                 </select>
               </div>
+              {documentForm.documentType === 'other' && (
+                <div className="form-group">
+                  <label>Specify Document Type</label>
+                  <input
+                    type="text"
+                    value={documentForm.customDocumentType || ''}
+                    onChange={e => setDocumentForm({...documentForm, customDocumentType: e.target.value})}
+                    placeholder="Enter document type"
+                    required
+                  />
+                </div>
+              )}
               <div className="form-group">
                 <label>Description (Optional)</label>
                 <input
@@ -1180,6 +1388,24 @@ const EmployeeDashboard = () => {
                 type="text"
                 value={profileForm.address}
                 onChange={e => setProfileForm({...profileForm, address: e.target.value})}
+              />
+            </div>
+            <div className="form-group">
+              <label>Position</label>
+              <input
+                type="text"
+                value={profileForm.position || ''}
+                onChange={e => setProfileForm({...profileForm, position: e.target.value})}
+                placeholder="Enter your position"
+              />
+            </div>
+            <div className="form-group">
+              <label>Department</label>
+              <input
+                type="text"
+                value={profileForm.department || ''}
+                onChange={e => setProfileForm({...profileForm, department: e.target.value})}
+                placeholder="Enter your department"
               />
             </div>
             <div className="modal-actions">

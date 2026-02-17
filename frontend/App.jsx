@@ -3,13 +3,12 @@ import Login from './pages/Login';
 import AdminDashboard from './admin/AdminDashboard';
 import Users from './admin/Users';
 import Leaves from './admin/Leaves';
-import Payroll from './admin/Payroll';
+import PromoteEmployee from './admin/Payroll';
 import Reports from './admin/Reports';
 import Logs from './admin/Logs';
 import Settings from './admin/Settings';
 import Profile from './admin/Profile';
 import Achievements from './admin/Achievements';
-import HRDashboard from './hr/HRDashboard';
 import HeadDashboard from './head/HeadDashboard';
 import EmployeeDashboard from './employee/EmployeeDashboard';
 
@@ -25,8 +24,8 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     // Redirect to appropriate dashboard based on role
     if (user.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
-    if (user.role === 'hr') return <Navigate to="/hr/dashboard" replace />;
-    if (user.role === 'head') return <Navigate to="/head/dashboard" replace />;
+    if (user.role === 'hr') return <Navigate to="/login" replace />;
+    if (user.role === 'head' || user.role === 'chief') return <Navigate to="/head/dashboard" replace />;
     if (user.role === 'employee') return <Navigate to="/employee/dashboard" replace />;
     return <Navigate to="/login" replace />;
   }
@@ -79,7 +78,7 @@ function App() {
           path="/admin/payroll" 
           element={
             <ProtectedRoute allowedRoles={['admin']}>
-              <Payroll />
+              <PromoteEmployee />
             </ProtectedRoute>
           } 
         />
@@ -124,21 +123,12 @@ function App() {
           } 
         />
         
-        {/* HR Routes */}
-        <Route 
-          path="/hr/dashboard" 
-          element={
-            <ProtectedRoute allowedRoles={['hr']}>
-              <HRDashboard />
-            </ProtectedRoute>
-          } 
-        />
         
-        {/* Head Routes */}
+        {/* Head/Chief Routes */}
         <Route 
           path="/head/dashboard" 
           element={
-            <ProtectedRoute allowedRoles={['head']}>
+            <ProtectedRoute allowedRoles={['head', 'chief']}>
               <HeadDashboard />
             </ProtectedRoute>
           } 

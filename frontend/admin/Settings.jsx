@@ -58,26 +58,69 @@ const Settings = () => {
   };
 
   const handleExportData = () => {
-    const data = {
-      users: JSON.parse(localStorage.getItem('users') || '[]'),
-      leaves: JSON.parse(localStorage.getItem('leaves') || '[]'),
-      payroll: JSON.parse(localStorage.getItem('payroll') || '[]'),
-      achievements: JSON.parse(localStorage.getItem('achievements') || '[]'),
-      settings: JSON.parse(localStorage.getItem('systemSettings') || '{}'),
-      exportDate: new Date().toISOString()
-    };
+    // Get all data
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const leaves = JSON.parse(localStorage.getItem('leaves') || '[]');
+    const achievements = JSON.parse(localStorage.getItem('achievements') || '[]');
+    const documents = JSON.parse(localStorage.getItem('documents') || '[]');
+    const promotionHistory = JSON.parse(localStorage.getItem('promotionHistory') || '[]');
     
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    let csvContent = '';
+    
+    // Summary
+    csvContent += 'LTO IHREMS DATA EXPORT\n';
+    csvContent += `Exported: ${new Date().toLocaleString()}\n\n`;
+    
+    csvContent += 'SUMMARY\n';
+    csvContent += `Total Users,${users.length}\n`;
+    csvContent += `Total Leave Records,${leaves.length}\n`;
+    csvContent += `Total Achievements,${achievements.length}\n`;
+    csvContent += `Total Documents,${documents.length}\n`;
+    csvContent += `Total Promotions,${promotionHistory.length}\n\n`;
+    
+    // Users
+    csvContent += 'USERS\n';
+    csvContent += 'Name,Email,Role,Position,Department,Phone,Address\n';
+    users.forEach(u => {
+      csvContent += `"${u.name}",${u.email},${u.role},"${u.position || ''}","${u.department || ''}","${u.phone || ''}","${(u.address || '').replace(/"/g, '""')}"\n`;
+    });
+    csvContent += '\n';
+    
+    // Leaves
+    csvContent += 'LEAVE RECORDS\n';
+    csvContent += 'Employee,Type,Start Date,End Date,Days,Reason,Status\n';
+    leaves.forEach(l => {
+      csvContent += `"${l.employeeName || ''}",${l.leaveType || ''},${l.startDate || ''},${l.endDate || ''},${l.daysRequested || 0},"${(l.reason || '').replace(/"/g, '""')}",${l.status || ''}\n`;
+    });
+    csvContent += '\n';
+    
+    // Achievements
+    csvContent += 'ACHIEVEMENTS\n';
+    csvContent += 'Employee,Title,Description,Date,Status\n';
+    achievements.forEach(a => {
+      csvContent += `"${a.employeeName || ''}","${(a.title || '').replace(/"/g, '""')}","${(a.description || '').replace(/"/g, '""')}",${a.date || ''},${a.status || ''}\n`;
+    });
+    csvContent += '\n';
+    
+    // Promotions
+    csvContent += 'PROMOTION HISTORY\n';
+    csvContent += 'Employee,Old Position,New Position,Promoted By,Date\n';
+    promotionHistory.forEach(p => {
+      csvContent += `"${p.employeeName}","${p.oldPosition}","${p.newPosition}","${p.promotedBy}",${p.promotedAt ? new Date(p.promotedAt).toLocaleDateString() : ''}\n`;
+    });
+    
+    // Download as Excel
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `lto-hrems-export-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `lto-hrems-export-${new Date().toISOString().split('T')[0]}.xls`;
     a.click();
     URL.revokeObjectURL(url);
     
     setModalContent({
       title: 'Export Complete',
-      message: 'Your data has been exported successfully!',
+      message: 'Your data has been exported successfully to Excel!',
       type: 'success'
     });
     setShowModal(true);

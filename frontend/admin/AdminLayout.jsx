@@ -19,8 +19,6 @@ const AdminLayout = ({ children }) => {
       const filteredNotifs = allNotifs.filter(notif => {
         // Admin sees all notifications
         if (userRole === 'admin') return true;
-        // HR sees leave and achievement notifications
-        if (userRole === 'hr') return notif.type === 'leave' || notif.type === 'achievement';
         // Head sees only leave notifications
         if (userRole === 'head') return notif.type === 'leave';
         // Employee sees only their own notifications
@@ -78,7 +76,11 @@ const AdminLayout = ({ children }) => {
         <nav className="sidebar-nav">
           <Link to="/admin/dashboard" className="nav-item active">
             <span className="icon">🏠</span>
-            <span className="text">Dashboard</span>
+            <span className="text">HR Dashboard</span>
+          </Link>
+          <Link to="/admin/reports" className="nav-item">
+            <span className="icon">📊</span>
+            <span className="text">Reports</span>
           </Link>
           <Link to="/admin/users" className="nav-item">
             <span className="icon">👤</span>
@@ -93,8 +95,8 @@ const AdminLayout = ({ children }) => {
             <span className="text">Achievements</span>
           </Link>
           <Link to="/admin/payroll" className="nav-item">
-            <span className="icon">💰</span>
-            <span className="text">Payroll</span>
+            <span className="icon">🏅</span>
+            <span className="text">Promote Employee</span>
           </Link>
           <Link to="/admin/settings" className="nav-item">
             <span className="icon">⚙️</span>
@@ -160,7 +162,7 @@ const AdminLayout = ({ children }) => {
             </div>
             <div className="user-info" onClick={() => setShowProfileDropdown(!showProfileDropdown)} style={{ cursor: 'pointer' }}>
               <span className="user-name">{currentUser.name || 'Administrator'}</span>
-              <span className="user-role">Admin</span>
+              <span className="user-role">HR</span>
             </div>
             <div className="user-avatar" onClick={() => setShowProfileDropdown(!showProfileDropdown)} style={{ cursor: 'pointer' }}>
               {currentUser?.profilePicture ? (

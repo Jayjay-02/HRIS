@@ -18,8 +18,23 @@ const Users = () => {
     email: '',
     password: '',
     role: 'employee',
-    position: ''
+    position: '',
+    department: ''
   });
+
+  // List of departments
+  const departments = [
+    'Administrative',
+    'Finance',
+    'Operations',
+    'IT',
+    'Human Resources',
+    'Legal',
+    'Records',
+    'Motor Vehicle Inspection',
+    'Drivers License',
+    'Planning'
+  ];
 
   useEffect(() => {
     loadUsers();
@@ -126,7 +141,8 @@ const Users = () => {
         email: user.email,
         password: '',
         role: user.role,
-        position: user.position || ''
+        position: user.position || '',
+        department: user.department || ''
       });
     } else {
       setEditingUser(null);
@@ -135,7 +151,8 @@ const Users = () => {
         email: '',
         password: '',
         role: 'employee',
-        position: ''
+        position: '',
+        department: ''
       });
     }
     setShowModal(true);
@@ -149,7 +166,8 @@ const Users = () => {
       email: '',
       password: '',
       role: 'employee',
-      position: ''
+      position: '',
+      department: ''
     });
   };
 
@@ -305,6 +323,19 @@ const Users = () => {
                       onChange={e => setFormData({...formData, position: e.target.value})}
                       placeholder="e.g., Senior Officer, Manager, Clerk"
                     />
+                  </div>
+                  <div className="form-group">
+                    <label>Department</label>
+                    <select
+                      value={formData.department || ''}
+                      onChange={e => setFormData({...formData, department: e.target.value})}
+                      required
+                    >
+                      <option value="">Select Department</option>
+                      {departments.map(dept => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
                 <div className="modal-footer">

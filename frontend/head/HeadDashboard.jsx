@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Calendar from '../components/Calendar';
 import Modal from '../components/Modal';
+import ltoLogo from '../assets/lto.png';
 import './HeadDashboard.css';
 
 const HeadDashboard = () => {
@@ -18,6 +19,7 @@ const HeadDashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalContent, setModalContent] = useState({ title: '', message: '', type: 'info', action: null });
   const [pendingAction, setPendingAction] = useState({ id: null, status: null, leave: null });
+  const [rejectionReason, setRejectionReason] = useState('');
   const [profileForm, setProfileForm] = useState({
     name: '',
     email: '',
@@ -27,7 +29,7 @@ const HeadDashboard = () => {
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user'));
-    if (!userData || userData.role !== 'head') {
+    if (!userData || (userData.role !== 'head' && userData.role !== 'chief')) {
       navigate('/login');
       return;
     }
@@ -44,12 +46,28 @@ const HeadDashboard = () => {
   }, [navigate]);
 
   const loadData = () => {
+    const userData = JSON.parse(localStorage.getItem('user') || '{}');
     const allNotifs = JSON.parse(localStorage.getItem('notifications') || '[]');
-    // Chief sees leave notifications that need approval
-    const headNotifs = allNotifs.filter(n => n.type === 'leave' && !n.chiefApproved);
+    
+    // Chief sees leave notifications that need approval for their department
+    const headNotifs = allNotifs.filter(n => 
+      n.type === 'leave' && 
+      !n.chiefApproved &&
+      (n.department === userData.department || !n.department)
+    );
     setNotifications(headNotifs);
-    setUsers(JSON.parse(localStorage.getItem('users') || '[]'));
-    setLeaves(JSON.parse(localStorage.getItem('leaves') || '[]'));
+    
+    const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
+    const allLeaves = JSON.parse(localStorage.getItem('leaves') || '[]');
+    
+    // Filter leaves by department - only show employees from the chief's department
+    const departmentLeaves = allLeaves.filter(leave => 
+      leave.employeeDepartment === userData.department ||
+      (departmentEmployees.includes(leave.employeeId) && !leave.employeeDepartment)
+    );
+    
+    setUsers(allUsers);
+    setLeaves(departmentLeaves);
     setPayrolls(JSON.parse(localStorage.getItem('payroll') || '[]'));
   };
 
@@ -73,7 +91,7 @@ const HeadDashboard = () => {
     alert('Profile updated successfully!');
   };
 
-  const employees = users.filter(u => u.role === 'employee');
+  const employees = users.filter(u => u.role === 'employee' && u.department === user.department);
   const totalSalary = payrolls.reduce((sum, p) => sum + (parseFloat(p.netSalary) || 0), 0);
   
   const formatCurrency = (amount) => {
@@ -219,17 +237,20 @@ const HeadDashboard = () => {
         cancelText: 'Cancel',
         action: 'approve'
       });
+      setShowConfirmModal(true);
     } else {
+      // For rejection, show modal with reason input
       setModalContent({
         title: 'Decline Leave Request',
-        message: `Are you sure you want to DECLINE this leave request for ${leave?.employeeName}?`,
-        type: 'danger',
-        confirmText: 'Yes, Decline',
+        message: `Please provide a reason for declining this leave request for ${leave?.employeeName}:`,
+        type: 'reject',
+        confirmText: 'Submit Decline',
         cancelText: 'Cancel',
-        action: 'reject'
+        action: 'reject',
+        showReasonInput: true
       });
+      setShowConfirmModal(true);
     }
-    setShowConfirmModal(true);
   };
 
   const executeLeaveAction = () => {
@@ -293,7 +314,7 @@ const HeadDashboard = () => {
     } else {
       // Reject
       const updatedLeaves = leaves.map(l => 
-        l.id === id ? { ...l, status: 'rejected', chiefApproved: false } : l
+        l.id === id ? { ...l, status: 'rejected', chiefApproved: false, rejectionReason: rejectionReason } : l
       );
       localStorage.setItem('leaves', JSON.stringify(updatedLeaves));
       setLeaves(updatedLeaves);
@@ -304,17 +325,18 @@ const HeadDashboard = () => {
         id: Date.now() + 'emp',
         type: 'leave_response',
         title: 'Leave Declined',
-        message: `Your leave request for ${leave?.daysRequested} days has been declined by the Chief.`,
+        message: `Your leave request for ${leave?.daysRequested} days has been declined by the Chief. Reason: ${rejectionReason || 'No reason provided'}`,
         userId: leave?.employeeId,
         isRead: false,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        rejectionReason: rejectionReason
       });
       localStorage.setItem('notifications', JSON.stringify(employeeNotifications));
       
       // Log activity
       const activities = JSON.parse(localStorage.getItem('activities') || '[]');
       activities.unshift({
-        action: `Chief declined leave request for ${leave?.employeeName}`,
+        action: `Chief declined leave request for ${leave?.employeeName}. Reason: ${rejectionReason || 'No reason provided'}`,
         user: leave?.employeeName,
         date: new Date().toLocaleDateString(),
         status: 'completed'
@@ -323,9 +345,10 @@ const HeadDashboard = () => {
       
       setModalContent({
         title: 'Leave Declined',
-        message: `Leave request for ${leave?.employeeName} has been declined.`,
+        message: `Leave request for ${leave?.employeeName} has been declined. Reason: ${rejectionReason || 'No reason provided'}`,
         type: 'success'
       });
+      setRejectionReason(''); // Reset rejection reason
     }
     
     setShowModal(true);
@@ -337,7 +360,7 @@ const HeadDashboard = () => {
       <aside className="sidebar">
         <div className="sidebar-header">
           <div className="logo">
-            <img src="/assets/lto.png" alt="LTO" />
+            <img src={ltoLogo} alt="LTO" />
             <span>LTO IHREMS</span>
           </div>
         </div>
@@ -347,6 +370,24 @@ const HeadDashboard = () => {
             onClick={() => setActiveSection('dashboard')}
           >
             📊 Dashboard
+          </button>
+          <button 
+            className={`nav-item ${activeSection === 'leaves' ? 'active' : ''}`}
+            onClick={() => setActiveSection('leaves')}
+          >
+            📋 Leave Approvals
+            {leaves.filter(l => !l.chiefApproved && l.status !== 'rejected').length > 0 && (
+              <span style={{ 
+                background: '#ef4444', 
+                color: 'white', 
+                padding: '2px 8px', 
+                borderRadius: '10px', 
+                fontSize: '12px',
+                marginLeft: '8px'
+              }}>
+                {leaves.filter(l => !l.chiefApproved && l.status !== 'rejected').length}
+              </span>
+            )}
           </button>
           <button 
             className={`nav-item ${activeSection === 'reports' ? 'active' : ''}`}
@@ -587,7 +628,7 @@ const HeadDashboard = () => {
       {/* Confirmation Modal */}
       <Modal
         isOpen={showConfirmModal}
-        onClose={() => setShowConfirmModal(false)}
+        onClose={() => { setShowConfirmModal(false); setRejectionReason(''); }}
         title={modalContent.title}
         type={modalContent.type}
         confirmText={modalContent.confirmText || 'Confirm'}
@@ -597,6 +638,28 @@ const HeadDashboard = () => {
         onConfirm={executeLeaveAction}
       >
         <p>{modalContent.message}</p>
+        {modalContent.showReasonInput && (
+          <div style={{ marginTop: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>
+              Reason for declining:
+            </label>
+            <textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="Enter reason for declining this leave request..."
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                minHeight: '80px',
+                fontFamily: 'inherit',
+                resize: 'vertical'
+              }}
+              autoFocus
+            />
+          </div>
+        )}
       </Modal>
 
       {/* Success Modal */}

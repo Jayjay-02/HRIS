@@ -8,7 +8,9 @@ const Profile = () => {
     email: '',
     phone: '',
     address: '',
-    profilePicture: ''
+    profilePicture: '',
+    position: '',
+    department: ''
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -21,7 +23,9 @@ const Profile = () => {
       email: user.email || '',
       phone: user.phone || '',
       address: user.address || '',
-      profilePicture: user.profilePicture || ''
+      profilePicture: user.profilePicture || '',
+      position: user.position || '',
+      department: user.department || ''
     });
   }, []);
 
@@ -88,6 +92,30 @@ const Profile = () => {
             <div className="profile-info">
               <h2>{currentUser?.name || 'Administrator'}</h2>
               <span className="role-badge admin">{currentUser?.role || 'Admin'}</span>
+              <div style={{ marginTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {currentUser?.position && (
+                  <span style={{ 
+                    background: '#e0e7ff', 
+                    color: '#3730a3', 
+                    padding: '4px 12px', 
+                    borderRadius: '20px',
+                    fontSize: '13px'
+                  }}>
+                    💼 {currentUser.position}
+                  </span>
+                )}
+                {currentUser?.department && (
+                  <span style={{ 
+                    background: '#dcfce7', 
+                    color: '#166534', 
+                    padding: '4px 12px', 
+                    borderRadius: '20px',
+                    fontSize: '13px'
+                  }}>
+                    🏢 {currentUser.department}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -165,6 +193,28 @@ const Profile = () => {
                 onChange={handleChange}
                 placeholder="Enter your address"
                 rows="3"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Position</label>
+              <input
+                type="text"
+                name="position"
+                value={formData.position || ''}
+                onChange={handleChange}
+                placeholder="Enter your position"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Department</label>
+              <input
+                type="text"
+                name="department"
+                value={formData.department || ''}
+                onChange={handleChange}
+                placeholder="Enter your department"
               />
             </div>
 

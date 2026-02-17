@@ -85,8 +85,6 @@ const Login = () => {
         // Redirect based on user role using React Router
         if (user.role === 'admin') {
           navigate('/admin/dashboard');
-        } else if (user.role === 'hr') {
-          navigate('/hr/dashboard');
         } else if (user.role === 'head' || user.role === 'chief') {
           navigate('/head/dashboard');
         } else {

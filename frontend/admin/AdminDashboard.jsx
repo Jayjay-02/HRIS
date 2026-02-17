@@ -23,7 +23,7 @@ const AdminDashboard = () => {
   const loadData = () => {
     // Load users
     const usersData = JSON.parse(localStorage.getItem('users') || '[]');
-    const employeeUsers = usersData.filter(u => u.role === 'employee' || u.role === 'hr' || u.role === 'head');
+    const employeeUsers = usersData.filter(u => u.role === 'employee' || u.role === 'head' || u.role === 'chief');
     setEmployees(employeeUsers.slice(0, 5));
     
     // Load leaves

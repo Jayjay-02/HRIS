@@ -55,12 +55,14 @@
 .logo-container {
   display: flex;
   justify-content: center;
+  align-items: center;
+  height: 200px;
   margin-bottom: 16px;
 }
 
 .lto-logo {
-  width: 100px;
-  height: 100px;
+  width: 200px;
+  height: 200px;
   object-fit: contain;
   background: white;
   border-radius: 50%;

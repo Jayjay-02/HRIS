@@ -97,9 +97,11 @@ const HRDashboard = () => {
         </div>
         <nav>
           <Link to="/hr/dashboard" className="nav-item active">📊 Dashboard</Link>
-          <Link to="/hr/employees" className="nav-item">👥 Employees</Link>
+          <Link to="/hr/users" className="nav-item">👥 User Management</Link>
+          <Link to="/hr/employees" className="nav-item">👤 Employees</Link>
           <Link to="/hr/leaves" className="nav-item">📅 Leave Requests</Link>
-          <Link to="/hr/payroll" className="nav-item">💰 Payroll</Link>
+          <Link to="/hr/logs" className="nav-item">📝 Logs</Link>
+          <Link to="/hr/settings" className="nav-item">⚙️ Settings</Link>
         </nav>
         <div className="sidebar-footer">
           <button onClick={handleLogout}>🚪 Logout</button>

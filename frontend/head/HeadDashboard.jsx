@@ -26,6 +26,10 @@ const HeadDashboard = () => {
     phone: '',
     address: ''
   });
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [messageEmployee, setMessageEmployee] = useState(null);
+  const [messageText, setMessageText] = useState('');
+  const [messages, setMessages] = useState([]);
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user'));
@@ -61,6 +65,7 @@ const HeadDashboard = () => {
     const allLeaves = JSON.parse(localStorage.getItem('leaves') || '[]');
     
     // Filter leaves by department - only show employees from the chief's department
+    const departmentEmployees = allUsers.filter(u => u.department === userData.department).map(u => u.id);
     const departmentLeaves = allLeaves.filter(leave => 
       leave.employeeDepartment === userData.department ||
       (departmentEmployees.includes(leave.employeeId) && !leave.employeeDepartment)
@@ -355,6 +360,57 @@ const HeadDashboard = () => {
     setShowConfirmModal(false);
   };
 
+  // Message Employee Functions
+  const openMessageModal = (employee) => {
+    setMessageEmployee(employee);
+    setMessageText('');
+    setShowMessageModal(true);
+    
+    // Load previous messages with this employee
+    const allMessages = JSON.parse(localStorage.getItem('departmentMessages') || '[]');
+    const employeeMessages = allMessages.filter(m => 
+      (m.senderId === user.id && m.receiverId === employee.id) ||
+      (m.senderId === employee.id && m.receiverId === user.id)
+    );
+    setMessages(employeeMessages);
+  };
+
+  const sendMessage = () => {
+    if (!messageText.trim()) return;
+    
+    const newMessage = {
+      id: Date.now(),
+      senderId: user.id,
+      senderName: user.name,
+      receiverId: messageEmployee.id,
+      receiverName: messageEmployee.name,
+      message: messageText,
+      timestamp: new Date().toISOString(),
+      isRead: false
+    };
+    
+    const allMessages = JSON.parse(localStorage.getItem('departmentMessages') || '[]');
+    allMessages.push(newMessage);
+    localStorage.setItem('departmentMessages', JSON.stringify(allMessages));
+    
+    // Also send as notification to employee
+    const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+    notifications.push({
+      id: Date.now(),
+      type: 'message',
+      title: 'New Message from Head',
+      message: `${user.name}: ${messageText}`,
+      userId: messageEmployee.id,
+      isRead: false,
+      createdAt: new Date().toISOString()
+    });
+    localStorage.setItem('notifications', JSON.stringify(notifications));
+    
+    setMessages([...messages, newMessage]);
+    setMessageText('');
+    alert('Message sent successfully!');
+  };
+
   return (
     <div className="head-layout">
       <aside className="sidebar">
@@ -370,6 +426,12 @@ const HeadDashboard = () => {
             onClick={() => setActiveSection('dashboard')}
           >
             📊 Dashboard
+          </button>
+          <button 
+            className={`nav-item ${activeSection === 'employees' ? 'active' : ''}`}
+            onClick={() => setActiveSection('employees')}
+          >
+            👥 My Employees
           </button>
           <button 
             className={`nav-item ${activeSection === 'leaves' ? 'active' : ''}`}
@@ -388,12 +450,6 @@ const HeadDashboard = () => {
                 {leaves.filter(l => !l.chiefApproved && l.status !== 'rejected').length}
               </span>
             )}
-          </button>
-          <button 
-            className={`nav-item ${activeSection === 'reports' ? 'active' : ''}`}
-            onClick={() => setActiveSection('reports')}
-          >
-            📈 Reports
           </button>
           <button 
             className={`nav-item ${activeSection === 'calendar' ? 'active' : ''}`}
@@ -455,6 +511,9 @@ const HeadDashboard = () => {
         </header>
 
         <div className="content">
+          {/* Dashboard Section */}
+          {(activeSection === 'dashboard' || activeSection === 'employees' || activeSection === 'leaves' || activeSection === 'calendar') && (
+          <>
           <div className="stats-grid">
             <div className="stat-card">
               <div className="stat-icon blue">👥</div>
@@ -477,7 +536,65 @@ const HeadDashboard = () => {
               <div className="stat-label">Pending Approvals</div>
             </div>
           </div>
+          </>
+          )}
 
+          {/* Employees Section */}
+          {activeSection === 'employees' && (
+            <div className="panel full-width">
+              <h3>👥 My Employees ({employees.length})</h3>
+              <p style={{ marginBottom: '16px', color: '#6b7280' }}>
+                These are employees in your department. You can view their details and send them messages.
+              </p>
+              {employees.length > 0 ? (
+                <table className="leave-table">
+                  <thead>
+                    <tr>
+                      <th>Employee</th>
+                      <th>Email</th>
+                      <th>Position</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {employees.map(emp => (
+                      <tr key={emp.id}>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div className="emp-avatar">{emp.name?.charAt(0)}</div>
+                            <div className="emp-name">{emp.name}</div>
+                          </div>
+                        </td>
+                        <td>{emp.email}</td>
+                        <td>{emp.position || 'Employee'}</td>
+                        <td>
+                          <span className="status-badge active">Active</span>
+                        </td>
+                        <td>
+                          <button 
+                            className="btn btn-primary"
+                            style={{ padding: '6px 12px', background: '#1a365d' }}
+                            onClick={() => openMessageModal(emp)}
+                          >
+                            💬 Message
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
+                  No employees in your department yet.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Dashboard Overview (only on dashboard) */}
+          {activeSection === 'dashboard' && (
+          <>
           <div className="dashboard-grid">
             <div className="panel">
               <h3>Employee Overview</h3>
@@ -572,6 +689,8 @@ const HeadDashboard = () => {
               <Calendar leaves={leaves} />
             </div>
           </div>
+          </>
+          )}
         </div>
       </main>
 
@@ -671,6 +790,75 @@ const HeadDashboard = () => {
       >
         <p>{modalContent.message}</p>
       </Modal>
+
+      {/* Message Employee Modal */}
+      {showMessageModal && messageEmployee && (
+        <Modal
+          isOpen={showMessageModal}
+          onClose={() => setShowMessageModal(false)}
+          title={`💬 Message to ${messageEmployee.name}`}
+          type="message"
+          showCancel={true}
+          cancelText="Cancel"
+          showConfirm={false}
+          customFooter={
+            <>
+              <button className="btn-secondary" onClick={() => setShowMessageModal(false)}>Cancel</button>
+              <button 
+                className="btn-primary" 
+                onClick={sendMessage}
+                disabled={!messageText.trim()}
+                style={{ opacity: messageText.trim() ? 1 : 0.5 }}
+              >
+                📤 Send Message
+              </button>
+            </>
+          }
+        >
+          {messages.length > 0 && (
+            <div style={{ 
+              maxHeight: '150px', 
+              overflowY: 'auto', 
+              marginBottom: '15px',
+              padding: '10px',
+              background: '#f3f4f6',
+              borderRadius: '8px'
+            }}>
+              <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px' }}>Previous Messages:</p>
+              {messages.slice(-3).map(msg => (
+                <div key={msg.id} style={{ 
+                  marginBottom: '8px', 
+                  padding: '8px',
+                  background: msg.senderId === user.id ? '#dbeafe' : '#fff',
+                  borderRadius: '6px',
+                  fontSize: '13px'
+                }}>
+                  <strong>{msg.senderName}:</strong> {msg.message}
+                  <div style={{ fontSize: '10px', color: '#9ca3af' }}>
+                    {new Date(msg.timestamp).toLocaleString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="form-group">
+            <label>Your Message:</label>
+            <textarea
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              placeholder="Type your message here..."
+              rows={4}
+              style={{ 
+                width: '100%', 
+                padding: '10px', 
+                borderRadius: '6px',
+                border: '1px solid #d1d5db',
+                fontFamily: 'inherit'
+              }}
+            />
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };
